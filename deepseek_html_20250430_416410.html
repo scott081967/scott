@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <style>
+        :root {
+            --primary-color: #075E54;
+            --secondary-color: #128C7E;
+            --accent-color: #25D366;
+            --text-color: #ffffff;
+            --bg-color: #f0f0f0;
+            --bubble-sent: #DCF8C6;
+            --bubble-received: #ffffff;
+            --system-color: #ece5dd;
+            --timestamp-color: #999999;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de estado */
+        .status-bar {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        /* Barra de título */
+        .title-bar {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Contenido principal */
+        .main-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Vistas */
+        .view {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        /* Listas */
+        .list-container {
+            flex: 1;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .list-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* Botones */
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: var(--text-color);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        /* Área de chat */
+        .chat-header {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .message-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background-color: var(--system-color);
+        }
+
+        .message {
+            margin-bottom: 12px;
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .message-sent {
+            background-color: var(--bubble-sent);
+            margin-left: auto;
+            margin-right: 16px;
+        }
+
+        .message-received {
+            background-color: var(--bubble-received);
+            margin-right: auto;
+            margin-left: 16px;
+        }
+
+        .message-system {
+            text-align: center;
+            color: #666;
+            margin: 8px auto;
+            background: none;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: var(--timestamp-color);
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background-color: var(--bg-color);
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .send-btn {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+
+        /* Formularios */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Barra de navegación móvil */
+        .mobile-nav {
+            display: flex;
+            background-color: var(--primary-color);
+            padding: 8px 0;
+        }
+
+        .mobile-nav-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        /* Menú de escritorio */
+        .desktop-menu {
+            display: none;
+        }
+
+        /* Diálogos */
+        .dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .mobile-nav {
+                display: none;
+            }
+            
+            .desktop-menu {
+                display: flex;
+                background-color: var(--primary-color);
+                padding: 8px;
+            }
+            
+            .menu-btn {
+                background: none;
+                border: none;
+                color: var(--text-color);
+                padding: 8px 12px;
+                cursor: pointer;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra de estado -->
+    <div class="status-bar">
+        <span id="ip-label">IP: Cargando...</span>
+        <span id="status-label">Desconectado</span>
+    </div>
+
+    <!-- Barra de título -->
+    <div class="title-bar">
+        <span id="title-label">Chat App</span>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="main-content">
+        <!-- Vista de chats -->
+        <div id="chats-view" class="view active">
+            <div class="list-container" id="chats-list"></div>
+            <button class="btn btn-accent" id="refresh-btn">Actualizar</button>
+        </div>
+
+        <!-- Vista de contactos -->
+        <div id="contacts-view" class="view">
+            <div class="list-container" id="contacts-list"></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="add-contact-btn">Agregar</button>
+                <button class="btn btn-secondary" id="edit-contacts-btn">Editar</button>
+            </div>
+        </div>
+
+        <!-- Vista de configuración -->
+        <div id="settings-view" class="view">
+            <div class="form-group">
+                <button class="btn btn-primary" id="server-btn">Iniciar Servidor</button>
+            </div>
+            <div class="form-group">
+                <label for="phone-input">Tu Número:</label>
+                <input type="text" id="phone-input" placeholder="+56912345678">
+            </div>
+            <div class="form-group">
+                <label for="name-input">Tu Nombre:</label>
+                <input type="text" id="name-input" placeholder="Usuario">
+            </div>
+            <button class="btn btn-accent" id="connect-btn">Conectar</button>
+        </div>
+
+        <!-- Vista de chat -->
+        <div id="chat-view" class="view">
+            <div class="chat-header">
+                <button class="back-btn" id="back-btn">←</button>
+                <span id="chat-title">Chat</span>
+            </div>
+            <div class="message-area" id="message-area"></div>
+            <div class="input-area">
+                <input type="text" class="message-input" id="message-input" placeholder="Escribe un mensaje...">
+                <button class="send-btn" id="send-btn">→</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de navegación móvil -->
+    <div class="mobile-nav">
+        <button class="mobile-nav-btn" data-view="chats">💬 Chats</button>
+        <button class="mobile-nav-btn" data-view="contacts">👥 Contactos</button>
+        <button class="mobile-nav-btn" data-view="settings">⚙️ Ajustes</button>
+    </div>
+
+    <!-- Menú de escritorio -->
+    <div class="desktop-menu">
+        <button class="menu-btn" data-view="chats">Chats</button>
+        <button class="menu-btn" data-view="contacts">Contactos</button>
+        <button class="menu-btn" data-view="settings">Configuración</button>
+        <button class="menu-btn" id="exit-btn">Salir</button>
+    </div>
+
+    <!-- Diálogo para agregar contacto -->
+    <div id="add-contact-dialog" class="dialog" style="display: none;">
+        <h3>Agregar Contacto</h3>
+        <div class="form-group">
+            <label for="contact-phone">Número:</label>
+            <input type="text" id="contact-phone" placeholder="+56912345678">
+        </div>
+        <div class="form-group">
+            <label for="contact-name">Nombre:</label>
+            <input type="text" id="contact-name" placeholder="Nombre del contacto">
+        </div>
+        <div class="dialog-buttons">
+            <button class="btn btn-secondary" id="cancel-add-btn">Cancelar</button>
+            <button class="btn btn-primary" id="confirm-add-btn">Agregar</button>
+        </div>
+    </div>
+
+    <!-- Diálogo para editar contactos -->
+    <div id="edit-contacts-dialog" class="dialog" style="display: none;">
+        <h3>Editar Contactos</h3>
+        <div class="list-container" id="edit-contacts-list" style="height: 200px;"></div>
+        <div class="dialog-buttons">
+            <button class="btn btn-danger" id="delete-contact-btn">Eliminar Seleccionado</button>
+            <button class="btn btn-secondary" id="close-edit-btn">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        class ChatApplication {
+            constructor() {
+                this.isMobile = this.checkIfMobile();
+                this.running = true;
+                this.connected = false;
+                this.isServer = false;
+                this.currentChat = null;
+                this.username = "Usuario";
+                this.userPhone = "+56912345678";
+                this.contacts = {};
+                this.clientSockets = {};
+                this.serverSocket = null;
+                this.clientSocket = null;
+                this.HOST = "0.0.0.0";
+                this.PORT = 12345;
+
+                this.initUI();
+                this.loadData();
+                this.setupEventHandlers();
+                this.updateLocalIP();
+            }
+
+            checkIfMobile() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+
+            initUI() {
+                // Elementos de la UI
+                this.ui = {
+                    ipLabel: document.getElementById('ip-label'),
+                    statusLabel: document.getElementById('status-label'),
+                    titleLabel: document.getElementById('title-label'),
+                    chatsList: document.getElementById('chats-list'),
+                    contactsList: document.getElementById('contacts-list'),
+                    messageArea: document.getElementById('message-area'),
+                    messageInput: document.getElementById('message-input'),
+                    chatTitle: document.getElementById('chat-title'),
+                    phoneInput: document.getElementById('phone-input'),
+                    nameInput: document.getElementById('name-input'),
+                    serverBtn: document.getElementById('server-btn'),
+                    connectBtn: document.getElementById('connect-btn'),
+                    sendBtn: document.getElementById('send-btn'),
+                    backBtn: document.getElementById('back-btn'),
+                    refreshBtn: document.getElementById('refresh-btn'),
+                    addContactBtn: document.getElementById('add-contact-btn'),
+                    editContactsBtn: document.getElementById('edit-contacts-btn'),
+                    confirmAddBtn: document.getElementById('confirm-add-btn'),
+                    cancelAddBtn: document.getElementById('cancel-add-btn'),
+                    deleteContactBtn: document.getElementById('delete-contact-btn'),
+                    closeEditBtn: document.getElementById('close-edit-btn'),
+                    contactPhone: document.getElementById('contact-phone'),
+                    contactName: document.getElementById('contact-name'),
+                    editContactsList: document.getElementById('edit-contacts-list'),
+                    addContactDialog: document.getElementById('add-contact-dialog'),
+                    editContactsDialog: document.getElementById('edit-contacts-dialog'),
+                    views: {
+                        chats: document.getElementById('chats-view'),
+                        contacts: document.getElementById('contacts-view'),
+                        settings: document.getElementById('settings-view'),
+                        chat: document.getElementById('chat-view')
+                    }
+                };
+
+                // Configurar valores iniciales
+                this.ui.phoneInput.value = this.userPhone;
+                this.ui.nameInput.value = this.username;
+            }
+
+            loadData() {
+                const savedContacts = localStorage.getItem('contacts');
+                if (savedContacts) {
+                    this.contacts = JSON.parse(savedContacts);
+                    this.updateContactsList();
+                    this.updateChatsList();
+                }
+            }
+
+            saveData() {
+                localStorage.setItem('contacts', JSON.stringify(this.contacts));
+            }
+
+            updateLocalIP() {
+                // En un navegador no podemos obtener la IP local directamente
+                // Usamos WebRTC como alternativa (puede no funcionar en todos los navegadores)
+                const RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+                
+                if (RTCPeerConnection) {
+                    const pc = new RTCPeerConnection({iceServers:[]});
+                    pc.createDataChannel('');
+                    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+                    
+                    pc.onicecandidate = (ice) => {
+                        if (ice && ice.candidate && ice.candidate.candidate) {
+                            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+                            const ipMatch = ipRegex.exec(ice.candidate.candidate);
+                            if (ipMatch) {
+                                this.ui.ipLabel.textContent = `IP: ${ipMatch[1]}`;
+                                this.HOST = ipMatch[1];
+                            }
+                            pc.onicecandidate = () => {};
+                        }
+                    };
+                } else {
+                    this.ui.ipLabel.textContent = "IP: No disponible";
+                }
+            }
+
+            showView(viewName) {
+                Object.keys(this.ui.views).forEach(view => {
+                    if (view === viewName) {
+                        this.ui.views[view].classList.add('active');
+                    } else {
+                        this.ui.views[view].classList.remove('active');
+                    }
+                });
+            }
+
+            updateChatsList() {
+                this.ui.chatsList.innerHTML = '';
+                Object.entries(this.contacts).forEach(([phone, name]) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.textContent = `${name} (${phone})`;
+                    item.dataset.phone = phone;
+                    item.addEventListener('click', () => this.onChatSelected(phone));
+                    this.ui.chatsList.appendChild(item);
+                });
+            }
+
+            updateContactsList() {
+                this.ui.contactsList.innerHTML = '';
+                Object.entries(this.contacts).forEach(([phone, name]) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.textContent = `${name} (${phone})`;
+                    this.ui.contactsList.appendChild(item);
+                });
+            }
+
+            showAddContactDialog() {
+                this.ui.contactPhone.value = '';
+                this.ui.contactName.value = '';
+                this.ui.addContactDialog.style.display = 'block';
+                document.body.appendChild(this.createOverlay());
+            }
+
+            showEditContactsDialog() {
+                this.ui.editContactsList.innerHTML = '';
+                Object.entries(this.contacts).forEach(([phone, name]) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.textContent = `${name} (${phone})`;
+                    item.dataset.phone = phone;
+                    this.ui.editContactsList.appendChild(item);
+                });
+                this.ui.editContactsDialog.style.display = 'block';
+                document.body.appendChild(this.createOverlay());
+            }
+
+            createOverlay() {
+                const overlay = document.createElement('div');
+                overlay.className = 'overlay';
+                overlay.addEventListener('click', () => {
+                    this.ui.addContactDialog.style.display = 'none';
+                    this.ui.editContactsDialog.style.display = 'none';
+                    document.body.removeChild(overlay);
+                });
+                return overlay;
+            }
+
+            addContact(phone, name) {
+                if (!/^\+?[0-9]{8,15}$/.test(phone)) {
+                    alert('Número inválido');
+                    return false;
+                }
+                
+                this.contacts[phone] = name || phone;
+                this.saveData();
+                this.updateContactsList();
+                this.updateChatsList();
+                return true;
+            }
+
+            deleteContact(phone) {
+                delete this.contacts[phone];
+                this.saveData();
+                this.updateContactsList();
+                this.updateChatsList();
+            }
+
+            toggleServer() {
+                if (!this.isServer) {
+                    this.startServer();
+                } else {
+                    this.stopServer();
+                }
+            }
+
+            startServer() {
+                // En un navegador no podemos crear sockets directamente
+                // Simulamos el comportamiento
+                this.isServer = true;
+                this.ui.serverBtn.textContent = 'Detener Servidor';
+                this.ui.serverBtn.classList.add('btn-danger');
+                this.ui.serverBtn.classList.remove('btn-primary');
+                this.ui.statusLabel.textContent = 'Servidor activo';
+                this.displayMessage('Servidor iniciado. Esperando conexiones...', 'system');
+            }
+
+            stopServer() {
+                this.isServer = false;
+                this.running = false;
+                this.ui.serverBtn.textContent = 'Iniciar Servidor';
+                this.ui.serverBtn.classList.remove('btn-danger');
+                this.ui.serverBtn.classList.add('btn-primary');
+                this.ui.statusLabel.textContent = 'Desconectado';
+                this.displayMessage('Servidor detenido', 'system');
+            }
+
+            toggleConnection() {
+                if (!this.connected) {
+                    this.connectToServer();
+                } else {
+                    this.disconnectFromServer();
+                }
+            }
+
+            connectToServer() {
+                const phone = this.ui.phoneInput.value.trim();
+                const name = this.ui.nameInput.value.trim();
+                
+                if (!/^\+?[0-9]{8,15}$/.test(phone)) {
+                    alert('Número inválido');
+                    return;
+                }
+                
+                this.userPhone = phone;
+                this.username = name || phone;
+                
+                // Simulamos la conexión
+                this.connected = true;
+                this.ui.connectBtn.textContent = 'Desconectar';
+                this.ui.connectBtn.classList.add('btn-danger');
+                this.ui.connectBtn.classList.remove('btn-accent');
+                this.ui.statusLabel.textContent = `Conectado como ${this.username}`;
+                this.displayMessage(`Conectado como ${this.username}`, 'system');
+            }
+
+            disconnectFromServer() {
+                this.connected = false;
+                this.ui.connectBtn.textContent = 'Conectar';
+                this.ui.connectBtn.classList.remove('btn-danger');
+                this.ui.connectBtn.classList.add('btn-accent');
+                this.ui.statusLabel.textContent = 'Desconectado';
+                this.displayMessage('Desconectado del servidor', 'system');
+            }
+
+            sendMessage() {
+                const message = this.ui.messageInput.value.trim();
+                if (!message) return;
+                
+                if (!this.connected && !this.isServer) {
+                    alert('No estás conectado');
+                    return;
+                }
+                
+                if (this.isServer) {
+                    this.sendAsServer(message);
+                } else {
+                    this.sendAsClient(message);
+                }
+                
+                this.ui.messageInput.value = '';
+            }
+
+            sendAsServer(message) {
+                if (!this.currentChat) {
+                    alert('Selecciona un chat primero');
+                    return;
+                }
+                
+                // Simulamos el envío del mensaje
+                this.displayMessage(`Tú: ${message}`, 'sent');
+            }
+
+            sendAsClient(message) {
+                if (!this.clientSocket) return;
+                
+                // Simulamos el envío del mensaje
+                this.displayMessage(`Tú: ${message}`, 'sent');
+            }
+
+            displayMessage(message, msgType = 'system') {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message message-${msgType}`;
+                
+                if (msgType === 'system') {
+                    messageElement.textContent = message;
+                } else {
+                    messageElement.textContent = message;
+                    
+                    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const timestampElement = document.createElement('div');
+                    timestampElement.className = 'timestamp';
+                    timestampElement.textContent = timestamp;
+                    
+                    messageElement.appendChild(timestampElement);
+                }
+                
+                this.ui.messageArea.appendChild(messageElement);
+                this.ui.messageArea.scrollTop = this.ui.messageArea.scrollHeight;
+            }
+
+            setupEventHandlers() {
+                // Navegación
+                document.querySelectorAll('.mobile-nav-btn, .menu-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const view = btn.dataset.view;
+                        if (view) this.showView(view);
+                    });
+                });
+
+                // Chat
+                this.ui.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.ui.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+                this.ui.backBtn.addEventListener('click', () => this.showView('chats'));
+
+                // Contactos
+                this.ui.refreshBtn.addEventListener('click', () => {
+                    this.updateChatsList();
+                    this.updateContactsList();
+                });
+                this.ui.addContactBtn.addEventListener('click', () => this.showAddContactDialog());
+                this.ui.editContactsBtn.addEventListener('click', () => this.showEditContactsDialog());
+
+                // Diálogos
+                this.ui.confirmAddBtn.addEventListener('click', () => {
+                    const phone = this.ui.contactPhone.value.trim();
+                    const name = this.ui.contactName.value.trim();
+                    
+                    if (this.addContact(phone, name)) {
+                        this.ui.addContactDialog.style.display = 'none';
+                        document.querySelector('.overlay')?.remove();
+                    }
+                });
+                
+                this.ui.cancelAddBtn.addEventListener('click', () => {
+                    this.ui.addContactDialog.style.display = 'none';
+                    document.querySelector('.overlay')?.remove();
+                });
+                
+                this.ui.deleteContactBtn.addEventListener('click', () => {
+                    const selected = this.ui.editContactsList.querySelector('.list-item.selected');
+                    if (selected) {
+                        this.deleteContact(selected.dataset.phone);
+                    }
+                });
+                
+                this.ui.closeEditBtn.addEventListener('click', () => {
+                    this.ui.editContactsDialog.style.display = 'none';
+                    document.querySelector('.overlay')?.remove();
+                });
+
+                // Selección de contactos para eliminar
+                this.ui.editContactsList.addEventListener('click', (e) => {
+                    const item = e.target.closest('.list-item');
+                    if (item) {
+                        this.ui.editContactsList.querySelectorAll('.list-item').forEach(i => {
+                            i.classList.remove('selected');
+                        });
+                        item.classList.add('selected');
+                    }
+                });
+
+                // Salir
+                document.getElementById('exit-btn')?.addEventListener('click', () => {
+                    this.onClose();
+                });
+            }
+
+            onChatSelected(phone) {
+                this.currentChat = phone;
+                this.ui.chatTitle.textContent = this.contacts[phone] || phone;
+                this.ui.messageArea.innerHTML = '';
+                this.displayMessage(`Chat con ${this.contacts[phone] || phone} iniciado`, 'system');
+                this.showView('chat');
+            }
+
+            onClose() {
+                this.running = false;
+                
+                if (this.isServer) {
+                    this.stopServer();
+                } else if (this.connected) {
+                    this.disconnectFromServer();
+                }
+                
+                this.saveData();
+                // En un navegador no podemos cerrar la ventana directamente
+                alert('Aplicación cerrada. Puedes cerrar la pestaña.');
+            }
+        }
+
+        // Inicializar la aplicación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new ChatApplication();
+        });
+    </script>
+</body>
+</html>
